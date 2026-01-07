@@ -11,25 +11,34 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: gradle
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Build
+      - name: Build APK
         run: |
+          # دروستکردنی فۆڵدەری وێب
           mkdir -p www
           cp index.html www/ 2>/dev/null || true
           cp *.css www/ 2>/dev/null || true
           cp *.js www/ 2>/dev/null || true
           cp -r assets www/ 2>/dev/null || true
           
+          # دامەزراندنی کاپاسیتەر
           npm install @capacitor/cli @capacitor/core @capacitor/android
+          
+          # دروستکردنی پڕۆژەی ئەندرۆید
           npx cap init MyApp com.myapp.app --web-dir www
           npx cap add android
-          npx cap sync android
-          cd android && chmod +x gradlew && ./gradlew assembleDebug
+          
+          # چاککردنی وەشانی جاڤا لەناو پڕۆژەکەدا
+          cd android
+          echo "org.gradle.java.home=${JAVA_HOME_21_X64}" >> gradle.properties
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
