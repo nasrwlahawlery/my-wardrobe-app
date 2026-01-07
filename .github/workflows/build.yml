@@ -11,10 +11,16 @@ jobs:
           node-version: 20
       - name: Build
         run: |
+          # دروستکردنی فۆڵدەرێک بۆ ئەوەی کاپاسیتەر لێی گەڕێ
+          mkdir www
+          # کۆپیکردنی فایلەکان بۆ ناو فۆڵدەرەکە
+          cp index.html www/
+          cp *.css www/ 2>/dev/null || true
+          cp *.js www/ 2>/dev/null || true
+          cp -r assets www/ 2>/dev/null || true
+          
           npm install @capacitor/cli @capacitor/core @capacitor/android
-          if [ ! -f "capacitor.config.ts" ] && [ ! -f "capacitor.config.json" ]; then
-            npx cap init MyApp com.myapp.app --web-dir .
-          fi
+          npx cap init MyApp com.myapp.app --web-dir www
           npx cap add android
           npx cap sync android
           cd android && ./gradlew assembleDebug
