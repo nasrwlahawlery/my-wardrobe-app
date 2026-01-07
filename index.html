@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NKURDI 2026 - MASTER ENGINE</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root { --neon: #00d2ff; --bg: #000; --primary: #fe2c55; }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; background: #000; font-family: 'Segoe UI', sans-serif; color: #fff; overflow: hidden; }
+
+        /* Layers */
+        .layer { position: fixed; inset: 0; display: none; z-index: 100; flex-direction: column; }
+        
+        /* 1. Activation Layer - Rainbow Animation */
+        #activation-screen { 
+            display: flex; flex-direction: row; z-index: 30000; 
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%; animation: gradMove 8s ease infinite;
+        }
+        @keyframes gradMove { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        .logo-side { flex: 1.2; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border-left: 1px solid rgba(255,255,255,0.1); }
+        .n-logo { width: 95px; height: 95px; background: #fff; border-radius: 25px; display: flex; justify-content: center; align-items: center; font-size: 50px; font-weight: bold; color: #000; box-shadow: 0 0 40px rgba(0,0,0,0.3); animation: pulse 2s infinite; }
+        .qr-side { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        .qr-card { background: white; padding: 10px; border-radius: 15px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+        /* 2. Login Layer */
+        #login-screen { background: #000; align-items: center; justify-content: center; z-index: 25000; }
+        .btn-google { background: #fff; color: #000; padding: 16px 32px; border-radius: 14px; font-weight: bold; border: none; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 16px; }
+
+        /* 3. Main Engine Layout */
+        #main-app { width: 100%; height: 100%; background: #000; z-index: 10000; }
+        .app-header { height: 65px; width: 100%; background: rgba(0,0,0,0.9); border-bottom: 1px solid #111; display: flex; align-items: center; padding: 0 15px 0 65px; backdrop-filter: blur(15px); position: relative; }
+        .search-box { flex: 1; background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px; padding: 8px 15px; display: flex; align-items: center; gap: 10px; }
+        .search-box input { background: none; border: none; color: #fff; width: 100%; font-size: 14px; }
+        
+        #main-viewport { flex: 1; height: calc(100% - 140px); overflow: auto; padding: 15px; position: relative; }
+        #ad-box-target { width: 100%; display: none; }
+
+        /* Sidebar & Dash */
+        #dash-btn { position: absolute; left: 15px; top: 12px; width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; justify-content: center; align-items: center; z-index: 11000; cursor: pointer; color: var(--neon); border: 1px solid rgba(255,255,255,0.1); }
+        #sidebar { position: fixed; left: -100%; top: 0; width: 285px; height: 100%; background: #080808; z-index: 12000; transition: 0.4s; border-right: 1px solid #1a1a1a; overflow-y: auto; }
+        #sidebar.open { left: 0; }
+        
+        /* Dashboard Item Fixes */
+        .dash-item-ui { display: flex !important; align-items: center !important; height: 60px !important; padding: 0 12px !important; background: #111 !important; border-radius: 15px !important; margin-bottom: 10px !important; border: 1px solid #1a1a1a !important; cursor: pointer !important; text-decoration: none !important; }
+        .dash-item-ui img { width: 38px !important; height: 38px !important; min-width: 38px !important; border-radius: 10px !important; object-fit: cover !important; margin-left: 12px !important; }
+        .dash-item-ui .info { flex: 1 !important; text-align: right !important; color: #fff !important; font-size: 14px !important; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: rgba(10,10,10,0.95); backdrop-filter: blur(20px); border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; z-index: 20000; }
+        .nav-item { flex: 1; text-align: center; color: #555; cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; align-items: center; }
+        .nav-item.active { color: var(--neon); transform: translateY(-5px); }
+        .nav-item img { width: 26px; height: 26px; border-radius: 7px; margin-bottom: 4px; transition: 0.3s; }
+        .nav-item.active img { filter: drop-shadow(0 0 12px var(--neon)); }
+        .nav-item span { display: block; font-size: 10px; font-weight: bold; }
+
+        #timer-label { position: fixed; bottom: 85px; left: 15px; font-size: 9px; color: #222; font-family: monospace; z-index: 9000; }
+        @media (max-width: 600px) { #activation-screen { flex-direction: column-reverse; } .logo-side { border-left: none; border-bottom: 1px solid rgba(255,255,255,0.1); } }
+    </style>
+</head>
+<body oncontextmenu="return false">
+
+    <!-- Layer 1: Activation -->
+    <div id="activation-screen" class="layer">
+        <div class="qr-side">
+            <div class="qr-card"><div id="qrcode"></div></div>
+            <p style="color:#fff; margin-top:20px; font-weight: bold;">سکان بۆ چالاککردن</p>
+            <p id="dev-id" style="font-size:10px; color:rgba(255,255,255,0.4); margin-top:10px; font-family:monospace;"></p>
+        </div>
+        <div class="logo-side">
+            <div class="n-logo">N</div>
+            <h2 style="margin-top:15px; letter-spacing: 5px; color:#fff;">NKURDI</h2>
+        </div>
+    </div>
+
+    <!-- Layer 2: Login -->
+    <div id="login-screen" class="layer">
+        <div class="n-logo" style="background:#fff; color:#000; margin-bottom:40px;">N</div>
+        <button class="btn-google" onclick="window.handleLogin()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Google Login</button>
+    </div>
+
+    <!-- Layer 3: Master Engine -->
+    <div id="main-app" class="layer">
+        <header class="app-header">
+            <div id="dash-btn" onclick="window.toggleSidebar()"><i class="fas fa-th-large"></i></div>
+            <div class="search-box"><i class="fas fa-search"></i><input type="text" id="smartInput" placeholder="گەڕان..." onkeyup="window.runSmartSearch()"></div>
+        </header>
+        <div id="sidebar">
+            <div id="user-info" style="padding:25px; text-align:center; border-bottom:1px solid #111;"></div>
+            <div id="module-list" style="padding:15px;"></div>
+        </div>
+        <main id="main-viewport" onclick="window.closeSidebar()">
+            <div id="ad-box-target"></div>
+            <div id="content-target"><div style="padding-top:40vh; text-align:center; color:#111;">سیستەم ئامادەیە</div></div>
+        </main>
+        <nav class="bottom-nav" id="dynamic-nav-target"></nav>
+        <div id="timer-label"></div>
+    </div>
+
+    <script>
+        // --- GLOBAL ENGINE FUNCTIONS (THE BRAIN) ---
+        window.smartUpdate = (targetId, rawData) => {
+            if(!rawData) return;
+            let html = rawData;
+            try { if(!rawData.includes('<')) html = decodeURIComponent(atob(rawData)); } catch(e){}
+            const container = document.getElementById(targetId);
+            container.innerHTML = html;
+            // Execute any scripts found in the new content
+            container.querySelectorAll("script").forEach(s => {
+                const ns = document.createElement("script"); ns.text = s.text;
+                document.head.appendChild(ns).parentNode.removeChild(ns);
+            });
+        };
+        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
+        window.closeSidebar = () => document.getElementById('sidebar').classList.remove('open');
+        window.handleLogin = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        window.logout = () => auth.signOut().then(() => location.reload());
+        window.loadItemHTML = (h) => window.loadContentHTML(h, null);
+        window.loadContentHTML = (h, el) => {
+            if(el) { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); el.classList.add('active'); }
+            window.smartUpdate('content-target', h);
+            window.closeSidebar();
+        };
+        window.runSmartSearch = () => {
+            let v = document.getElementById('smartInput').value.toLowerCase();
+            document.querySelectorAll('.dash-item-ui, .nav-item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(v) ? "flex" : "none");
+        };
+
+        // --- Firebase Core ---
+        const config = { apiKey: "AIzaSyD7aTAcX0APv0DzuT5d2zEBMCygWXvIvoM", authDomain: "karyar-app.firebaseapp.com", projectId: "karyar-app", databaseURL: "https://karyar-app-default-rtdb.firebaseio.com", appId: "1:99588670663:web:b889fca434238f2bd92ae2" };
+        firebase.initializeApp(config); const db = firebase.database(); const auth = firebase.auth();
+        const myID = localStorage.getItem('nk_stable_master_2026_final') || "NK-"+Math.random().toString(36).substr(2,6).toUpperCase();
+        localStorage.setItem('nk_stable_master_2026_final', myID);
+        document.getElementById('dev-id').innerText = myID;
+
+        let activeTimer = null;
+
+        window.onload = function() {
+            new QRCode(document.getElementById("qrcode"), { text: myID, width: 140, height: 140 });
+
+            // All-in-One Realtime Synchronization
+            db.ref('app_config').on('value', s => {
+                const c = s.val(); if(!c) return;
+                if(c.navigation) document.getElementById('dynamic-nav-target').innerHTML = Object.keys(c.navigation).map(k => `<div class="nav-item" onclick="window.loadContentHTML('${c.navigation[k].h}', this)"><img src="${c.navigation[k].i}"><span>${c.navigation[k].n}</span></div>`).join('');
+                if(c.dashboard) document.getElementById('module-list').innerHTML = c.dashboard;
+                if(c.ads) { document.getElementById('ad-box-target').innerHTML = c.ads; document.getElementById('ad-box-target').style.display = 'block'; }
+                if(c.home_html) window.smartUpdate('content-target', c.home_html);
+            });
+
+            // Fallback for old update keys
+            db.ref('dashboard_update/html_content').on('value', s => { if(s.val()) document.getElementById('module-list').innerHTML = s.val(); });
+            db.ref('app_update/html_content').on('value', s => { window.smartUpdate('content-target', s.val()); });
+
+            // MASTER SECURITY SYSTEM (Instant Kick Logic)
+            db.ref('devices/' + myID).on('value', snap => {
+                const d = snap.val(); const now = Date.now();
+                if (d && d.status === "active" && d.expiryTime > now) {
+                    auth.onAuthStateChanged(u => { 
+                        if(u) {
+                            launchApp(u, d.expiryTime);
+                            db.ref('devices/' + myID).update({ name: u.displayName, pic: u.photoURL, email: u.email });
+                        } else switchL('login-screen'); 
+                    });
+                } else {
+                    switchL('activation-screen');
+                    if(activeTimer) clearInterval(activeTimer);
+                }
+            });
+        };
+
+        function launchApp(u, expiry) {
+            switchL('main-app');
+            document.getElementById('user-info').innerHTML = `<img src="${u.photoURL}" style="width:55px; border-radius:50%; border:2px solid var(--neon);"><p style="margin-top:10px; font-size:14px; font-weight:bold;">${u.displayName}</p><small onclick="window.logout()" style="color:red; cursor:pointer;">دەرچوون</small>`;
+            
+            if(activeTimer) clearInterval(activeTimer);
+            activeTimer = setInterval(() => {
+                if (Date.now() >= expiry) {
+                    clearInterval(activeTimer);
+                    location.reload(); 
+                } else {
+                    document.getElementById('timer-label').innerText = "T: " + Math.ceil((expiry - Date.now())/1000);
+                }
+            }, 500);
+        }
+
+        function switchL(id) { document.querySelectorAll('.layer').forEach(l => l.style.display='none'); document.getElementById(id).style.display='flex'; }
+    </script>
+</body>
+</html>
