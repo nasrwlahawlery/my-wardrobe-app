@@ -19,16 +19,21 @@ jobs:
 
       - name: Build APK
         run: |
+          # ١. دروستکردنی فۆڵدەر و ئامادەکردنی فایلەکان
           mkdir -p www
           cp index.html www/ 2>/dev/null || true
           cp *.css www/ 2>/dev/null || true
           cp *.js www/ 2>/dev/null || true
           cp -r assets www/ 2>/dev/null || true
           
+          # ٢. دامەزراندنی کاپاسیتەر
           npm install @capacitor/cli @capacitor/core @capacitor/android
+          
+          # ٣. دروستکردنی پڕۆژەی ئەندرۆید لە سفرەوە
           npx cap init MyApp com.myapp.app --web-dir www
           npx cap add android
           
+          # ٤. کۆمپیڵکردنی ئەپەکە
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
@@ -36,5 +41,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: my-app-file
+          name: my-final-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
