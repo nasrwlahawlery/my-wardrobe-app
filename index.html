@@ -3,197 +3,926 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NKURDI 2026 - MASTER ENGINE</title>
+    <!-- Cache Control -->
+    <meta http-equiv="Cache-Control" content="max-age=31536000" />
+    <meta http-equiv="Pragma" content="cache" />
     
-    <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>POS Fast & Fixed</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 
     <style>
-        :root { --neon: #00d2ff; --bg: #000; --primary: #fe2c55; }
-        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; height: 100%; background: #000; font-family: 'Segoe UI', sans-serif; color: #fff; overflow: hidden; }
-
-        /* Layers */
-        .layer { position: fixed; inset: 0; display: none; z-index: 100; flex-direction: column; }
-        
-        /* 1. Activation Layer - Rainbow Animation */
-        #activation-screen { 
-            display: flex; flex-direction: row; z-index: 30000; 
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%; animation: gradMove 8s ease infinite;
+        :root {
+            /* Background Image for Glass Effect */
+            --bg-gradient: radial-gradient(circle at top left, #2b32b2, #1488cc, #000000); 
+            
+            --primary: #3b82f6;
+            --primary-glass: rgba(59, 130, 246, 0.6);
+            --text: #ffffff;
+            --danger: #ef4444;
+            --success: #10b981;
+            
+            /* Glass Variables */
+            --glass-bg: rgba(255, 255, 255, 0.07);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-blur: blur(16px);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
-        @keyframes gradMove { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-        .logo-side { flex: 1.2; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border-left: 1px solid rgba(255,255,255,0.1); }
-        .n-logo { width: 95px; height: 95px; background: #fff; border-radius: 25px; display: flex; justify-content: center; align-items: center; font-size: 50px; font-weight: bold; color: #000; box-shadow: 0 0 40px rgba(0,0,0,0.3); animation: pulse 2s infinite; }
-        .qr-side { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
-        .qr-card { background: white; padding: 10px; border-radius: 15px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
 
-        /* 2. Login Layer */
-        #login-screen { background: #000; align-items: center; justify-content: center; z-index: 25000; }
-        .btn-google { background: #fff; color: #000; padding: 16px 32px; border-radius: 14px; font-weight: bold; border: none; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 16px; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
 
-        /* 3. Main Engine Layout */
-        #main-app { width: 100%; height: 100%; background: #000; z-index: 10000; }
-        .app-header { height: 65px; width: 100%; background: rgba(0,0,0,0.9); border-bottom: 1px solid #111; display: flex; align-items: center; padding: 0 15px 0 65px; backdrop-filter: blur(15px); position: relative; }
-        .search-box { flex: 1; background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 12px; padding: 8px 15px; display: flex; align-items: center; gap: 10px; }
-        .search-box input { background: none; border: none; color: #fff; width: 100%; font-size: 14px; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
         
-        #main-viewport { flex: 1; height: calc(100% - 140px); overflow: auto; padding: 15px; position: relative; }
-        #ad-box-target { width: 100%; display: none; }
+        body { 
+            font-family: 'Noto Kufi Arabic', sans-serif; 
+            margin: 0; 
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            background-attachment: fixed;
+            color: var(--text); 
+            padding-bottom: 90px; 
+            overflow-x: hidden; 
+            min-height: 100vh;
+            font-size: 14px;
+            /* Speed Optimization */
+            text-rendering: optimizeSpeed;
+        }
 
-        /* Sidebar & Dash */
-        #dash-btn { position: absolute; left: 15px; top: 12px; width: 40px; height: 40px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; justify-content: center; align-items: center; z-index: 11000; cursor: pointer; color: var(--neon); border: 1px solid rgba(255,255,255,0.1); }
-        #sidebar { position: fixed; left: -100%; top: 0; width: 285px; height: 100%; background: #080808; z-index: 12000; transition: 0.4s; border-right: 1px solid #1a1a1a; overflow-y: auto; }
-        #sidebar.open { left: 0; }
+        /* --- GLASS MIXIN CLASSES --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* Update Notification Icon */
+        #update-btn {
+            position: fixed; top: 15px; left: 15px;
+            background: rgba(59, 130, 246, 0.8); 
+            backdrop-filter: blur(5px);
+            color: white; border: 1px solid rgba(255,255,255,0.3);
+            width: 40px; height: 40px; border-radius: 50%;
+            display: none; align-items: center; justify-content: center;
+            z-index: 12000; cursor: pointer;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* Progress Bar Overlay */
+        #update-overlay {
+            position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            z-index: 13000; display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .progress-container {
+            width: 80%; max-width: 300px; height: 8px;
+            background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden;
+            margin-top: 20px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .progress-bar {
+            height: 100%; width: 0%; background: var(--primary);
+            transition: width 0.1s;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Header (Glass) */
+        .header {
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 10px 15px; position: sticky; top: 0; z-index: 50;
+            border-bottom: 1px solid var(--glass-border); 
+            display: flex; justify-content: space-between; align-items: center;
+            height: 65px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .header button { padding: 10px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); color: white; cursor: pointer; transition: 0.2s; }
+        .header button:active { background: rgba(255,255,255,0.15); transform: scale(0.95); }
+        .brand { font-size: 1.2rem; font-weight: 800; color: white; text-shadow: 0 0 15px rgba(59, 130, 246, 0.8); letter-spacing: 0.5px; }
+
+        /* Sidebar & Overlay */
+        .overlay { 
+            position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.7); 
+            z-index: 9998; 
+            opacity: 0; pointer-events: none; 
+            transition: 0.3s; 
+            backdrop-filter: blur(4px); 
+        }
+        .overlay.active { opacity: 1; pointer-events: auto; }
         
-        /* Dashboard Item Fixes */
-        .dash-item-ui { display: flex !important; align-items: center !important; height: 60px !important; padding: 0 12px !important; background: #111 !important; border-radius: 15px !important; margin-bottom: 10px !important; border: 1px solid #1a1a1a !important; cursor: pointer !important; text-decoration: none !important; }
-        .dash-item-ui img { width: 38px !important; height: 38px !important; min-width: 38px !important; border-radius: 10px !important; object-fit: cover !important; margin-left: 12px !important; }
-        .dash-item-ui .info { flex: 1 !important; text-align: right !important; color: #fff !important; font-size: 14px !important; }
+        .sidebar {
+            position: fixed; top: 0; right: -320px; bottom: 0; width: 280px;
+            background: rgba(15, 15, 25, 0.85);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-left: 1px solid rgba(255,255,255,0.1); 
+            z-index: 9999; 
+            padding: 25px; display: flex; flex-direction: column; 
+            transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+            will-change: transform; /* Speed Boost */
+        }
+        .sidebar.open { right: 0; }
+        
+        #cat-list { flex: 1; overflow-y: auto; margin-top: 20px; }
+        .cat-item { 
+            padding: 14px; margin-bottom: 10px; border-radius: 12px; 
+            background: rgba(255, 255, 255, 0.04); 
+            border: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer; color: #ddd; 
+            font-weight: 600; font-size: 0.95rem;
+            transition: 0.2s;
+        }
+        .cat-item:active { transform: scale(0.98); }
+        .cat-item.active-cat { 
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.4), rgba(59, 130, 246, 0.1)); 
+            border-color: rgba(59, 130, 246, 0.5);
+            color: white; 
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+        }
 
-        /* Bottom Nav */
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 75px; background: rgba(10,10,10,0.95); backdrop-filter: blur(20px); border-top: 1px solid #1a1a1a; display: flex; justify-content: space-around; align-items: center; z-index: 20000; }
-        .nav-item { flex: 1; text-align: center; color: #555; cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; align-items: center; }
-        .nav-item.active { color: var(--neon); transform: translateY(-5px); }
-        .nav-item img { width: 26px; height: 26px; border-radius: 7px; margin-bottom: 4px; transition: 0.3s; }
-        .nav-item.active img { filter: drop-shadow(0 0 12px var(--neon)); }
-        .nav-item span { display: block; font-size: 10px; font-weight: bold; }
+        /* Alpha Scroll */
+        .alpha-bar {
+            position: fixed; top: 75px; right: 5px; bottom: 100px; width: 35px;
+            display: flex; flex-direction: column; align-items: center; 
+            z-index: 9000; overflow-y: auto; pointer-events: none;
+            background: rgba(0,0,0,0.2); border-radius: 20px;
+            backdrop-filter: blur(5px);
+            padding: 5px 0;
+        }
+        .alpha-char { 
+            width: 100%; height: 3.5%; flex-shrink: 0; min-height: 22px;
+            display:flex; align-items:center; justify-content:center; 
+            font-weight:bold; cursor: pointer; color: #aaa;
+            font-size: 11px; pointer-events: auto; text-shadow: 0 1px 2px black;
+        }
+        .alpha-char:active { color: var(--primary); font-size: 16px; font-weight: 900; transform: scale(1.5); }
 
-        #timer-label { position: fixed; bottom: 85px; left: 15px; font-size: 9px; color: #222; font-family: monospace; z-index: 9000; }
-        @media (max-width: 600px) { #activation-screen { flex-direction: column-reverse; } .logo-side { border-left: none; border-bottom: 1px solid rgba(255,255,255,0.1); } }
+        /* Grid System */
+        .grid { 
+            display: grid; gap: 15px; padding: 15px; padding-right: 50px; 
+            grid-template-columns: repeat(2, 1fr); 
+        }
+        @media (min-width: 768px) {
+            .grid { grid-template-columns: repeat(4, 1fr); gap: 20px; padding-right: 60px; }
+        }
+
+        /* Card Styles - REAL GLASS + SPEED OPTIMIZATIONS */
+        .card { 
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px; overflow: hidden; position: relative; 
+            transform: translateZ(0); 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            transition: transform 0.1s, box-shadow 0.2s, border-color 0.2s;
+            scroll-margin-top: 80px;
+            
+            /* SPEED BOOSTS */
+            content-visibility: auto; 
+            contain-intrinsic-size: 1px 200px;
+            will-change: transform;
+        }
+        .card:active { transform: scale(0.97); background: rgba(255,255,255,0.1); }
+        .card.highlight { 
+            border-color: var(--primary); 
+            z-index: 20; 
+            box-shadow: 0 0 30px var(--primary); 
+            transform: scale(1.05);
+        }
+        
+        .card img { 
+            width: 100%; height: 125px; object-fit: cover; opacity: 1; display: block; 
+            mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+            /* SPEED BOOST */
+            loading: lazy; 
+            decoding: async;
+        }
+        @media (min-width: 768px) { .card img { height: 170px; } }
+
+        .card-body { padding: 12px; position: relative; }
+        .p-name { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+        .p-price { color: #60a5fa; font-weight: 800; font-size: 1.1rem; text-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+        
+        .qty-badge { 
+            position: absolute; top: 8px; left: 8px; 
+            background: #ef4444;
+            color: white; border: 2px solid white;
+            width: 32px; height: 32px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: 800; font-size: 1rem; opacity: 0; transform: scale(0); 
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .qty-badge.active { opacity: 1; transform: scale(1); }
+
+        /* Basket Floating Glass */
+        #top-basket {
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: rgba(59, 130, 246, 0.5); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white; padding: 10px 30px; border-radius: 40px;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3); 
+            z-index: 9500; cursor: pointer;
+            display: flex; align-items: center; gap: 10px; font-weight: bold; transition: 0.3s; font-size: 1rem;
+        }
+        #top-basket.show { transform: translateX(-50%) translateY(0); }
+
+        /* Modals - Deep Glass */
+        .modal { 
+            position: fixed; z-index: 10000; 
+            background: rgba(18, 18, 28, 0.85);
+            backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-top: 1px solid rgba(255,255,255,0.15);
+            transition: 0.35s cubic-bezier(0.32, 0.72, 0, 1); 
+            display: flex; flex-direction: column; overflow: hidden;
+            inset: auto; bottom: 0; left: 0; right: 0; top: auto;
+            width: 100%; height: 92vh; border-radius: 30px 30px 0 0;
+            transform: translateY(100%);
+            box-shadow: 0 -10px 50px rgba(0,0,0,0.7);
+            will-change: transform;
+        }
+        .modal.open { transform: translateY(0); }
+
+        /* Account Modal Center Glass */
+        #account-modal {
+            inset: 0 !important; top: 50% !important; left: 50% !important; bottom: auto !important; right: auto !important;
+            width: 90%; max-width: 400px; height: auto !important;
+            transform: translate(-50%, -50%) scale(0.9); opacity: 0; pointer-events: none;
+            border-radius: 25px; 
+            background: rgba(30, 30, 40, 0.7);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        #account-modal.open { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: all; }
+
+        .modal-header { 
+            padding: 20px; 
+            background: linear-gradient(to bottom, rgba(255,255,255,0.05), transparent);
+            border-bottom: 1px solid rgba(255,255,255,0.08); 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+        .modal-footer { 
+            background: rgba(0,0,0,0.2); 
+            padding: 20px; border-top: 1px solid rgba(255,255,255,0.08); 
+        }
+
+        /* Glass Inputs & Buttons */
+        .glass-input {
+            width: 100%; padding: 15px; margin-bottom: 12px;
+            background: rgba(0, 0, 0, 0.3); 
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white; border-radius: 12px; font-size: 1rem;
+            transition: 0.2s;
+        }
+        .glass-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); }
+
+        .app-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.95rem; }
+        .app-table th { text-align: right; padding: 10px; color: #aaa; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 500; }
+        .app-table td { padding: 12px 5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        
+        .qty-ctrl { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.08); padding: 5px 12px; border-radius: 10px; margin: 0 auto; width: fit-content; border: 1px solid rgba(255,255,255,0.05); }
+        .qty-btn { width: 30px; height: 30px; background: rgba(255,255,255,0.1); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .qty-btn:active { background: var(--primary); }
+
+        .total-box { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05)); 
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 18px; border-radius: 15px; margin-bottom: 20px; 
+        }
+        .total-amount { font-size: 1.6rem; color: #60a5fa; font-weight: 800; text-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+
+        .btn-main { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white; border: none; padding: 15px; border-radius: 12px; 
+            font-weight: bold; font-size: 1.1rem; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; 
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+            border-top: 1px solid rgba(255,255,255,0.2);
+            transition: 0.2s;
+        }
+        .btn-main:active { transform: scale(0.98); box-shadow: 0 5px 10px rgba(59, 130, 246, 0.2); }
+
+        /* Search Glass */
+        #search-container {
+            position: fixed; inset: 0; 
+            background: rgba(10, 10, 20, 0.8); backdrop-filter: blur(8px);
+            z-index: 11000;
+            display: flex; justify-content: center; align-items: flex-start; padding-top: 90px;
+            opacity: 0; pointer-events: none; transition: 0.2s;
+        }
+        #search-container.visible { opacity: 1; pointer-events: all; }
+        #search-box { 
+            width: 90%; max-width: 500px; 
+            background: rgba(25, 25, 35, 0.9);
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 15px 20px; border-radius: 20px; 
+            display: flex; gap: 15px; align-items: center; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        #search-input { flex: 1; background: none; border: none; color: white; font-size: 1.2rem; text-align: center; }
+        
+        /* Bottom Nav - Glass Dock */
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; right: 0; height: 75px; 
+            background: rgba(15, 15, 20, 0.7); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.08); 
+            display: flex; justify-content: space-around; align-items: center; 
+            z-index: 100; padding-bottom: 15px; 
+            box-shadow: 0 -5px 30px rgba(0,0,0,0.3);
+        }
+        .nav-btn { background: none; border: none; color: #888; display: flex; flex-direction: column; align-items: center; font-size: 11px; gap: 6px; cursor: pointer; padding: 10px; width: 100%; transition: 0.2s; }
+        .nav-btn.active-nav { color: white; text-shadow: 0 0 15px rgba(255,255,255,0.6); }
+        .nav-btn.active-nav i { color: var(--primary); filter: drop-shadow(0 0 8px var(--primary)); transform: translateY(-3px); }
+        .nav-btn i { width: 24px; height: 24px; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* Print */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { display: block !important; position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white !important; color: black !important; padding: 10px; margin: 0; z-index: 999999; }
+            .p-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 10px; color: black !important; }
+            .p-table { width: 100%; border-collapse: collapse; font-size: 12px; direction: rtl; color: black !important; }
+            .p-table th { border-bottom: 1px solid black; text-align: right; padding: 5px 0; color: black !important; font-weight: bold; }
+            .p-table td { border-bottom: 1px dashed #ccc; padding: 5px 0; text-align: right; color: black !important; }
+            .p-total { font-weight: bold; font-size: 16px; border-top: 2px solid black; margin-top: 10px; padding-top: 5px; text-align: left; color: black !important; }
+            .ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 11px; font-weight: bold; text-align: center; margin-top: 5px; direction: rtl; }
+            .ph-item { direction: ltr; }
+        }
     </style>
 </head>
-<body oncontextmenu="return false">
+<body>
 
-    <!-- Layer 1: Activation -->
-    <div id="activation-screen" class="layer">
-        <div class="qr-side">
-            <div class="qr-card"><div id="qrcode"></div></div>
-            <p style="color:#fff; margin-top:20px; font-weight: bold;">سکان بۆ چالاککردن</p>
-            <p id="dev-id" style="font-size:10px; color:rgba(255,255,255,0.4); margin-top:10px; font-family:monospace;"></p>
+    <!-- Update UI -->
+    <div id="update-btn" onclick="runUpdate()">
+        <i data-feather="refresh-cw" style="width:20px; height:20px;"></i>
+    </div>
+    <div id="update-overlay">
+        <h3 style="color:white; margin:0; text-shadow: 0 0 10px black;">نوێدەکرێتەوە...</h3>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <div class="logo-side">
-            <div class="n-logo">N</div>
-            <h2 style="margin-top:15px; letter-spacing: 5px; color:#fff;">NKURDI</h2>
+        <div style="color:#ddd; margin-top:10px; font-size:1rem; font-weight:bold;">%<span id="progress-text">0</span></div>
+    </div>
+
+    <!-- Print Area -->
+    <div id="print-area" style="display:none;">
+        <div class="p-header">
+            <h2 style="margin:0; margin-bottom: 8px;">کۆگای حاجی وشیار قادر</h2>
+            <div class="ph-grid">
+                <div class="ph-item">0750 849 4736 (رێباز)</div>
+                <div class="ph-item">0750 744 1349 (ديار)</div>
+                <div class="ph-item">0750 858 3673 (ڕێبوار)</div>
+                <div class="ph-item">0751 839 2445 (کارژين)</div>
+            </div>
+        </div>
+        <div style="font-size:12px; text-align:right; margin-bottom:10px;">
+            بەڕێز: <span id="pr-name"></span><br>
+            مۆبایل: <span id="pr-phone"></span><br>
+            بەروار: <span id="pr-date"></span>
+        </div>
+        <table class="p-table">
+            <thead>
+                <tr><th>کاڵا</th><th style="text-align:center">دانە</th><th style="text-align:left">نرخ</th></tr>
+            </thead>
+            <tbody id="pr-items"></tbody>
+        </table>
+        <div class="p-total">کۆی گشتی: <span id="pr-total"></span></div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <button onclick="toggleSidebar()"><i data-feather="menu"></i></button>
+        <div class="brand">Haji Wushyar</div>
+        <div style="width: 32px;"></div>
+    </div>
+
+    <div id="top-basket" onclick="openReceiptModal()">
+        <i data-feather="shopping-cart" style="width:20px"></i>
+        <span id="basket-count">0</span>
+    </div>
+
+    <!-- Sidebar & Overlay -->
+    <div class="overlay" onclick="closeSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <h3 style="color:var(--primary); padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.1); margin-top:0; letter-spacing:1px;">بەشەکان</h3>
+        <div id="cat-list"></div>
+    </div>
+
+    <!-- Alpha Scroll -->
+    <div class="alpha-bar" id="alpha-bar"></div>
+    
+    <!-- Search Box -->
+    <div id="search-container" onclick="if(event.target === this) toggleSearch()">
+        <div id="search-box">
+            <i data-feather="search" style="color:#bbb"></i>
+            <input type="text" id="search-input" placeholder="ناوی کاڵا..." oninput="filterProducts(this.value)">
+            <button onclick="toggleSearch()" style="background:none; border:none; color:#bbb;"><i data-feather="x"></i></button>
         </div>
     </div>
 
-    <!-- Layer 2: Login -->
-    <div id="login-screen" class="layer">
-        <div class="n-logo" style="background:#fff; color:#000; margin-bottom:40px;">N</div>
-        <button class="btn-google" onclick="window.handleLogin()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"> Google Login</button>
-    </div>
+    <!-- PRODUCT GRID -->
+    <div class="grid" id="grid"></div>
 
-    <!-- Layer 3: Master Engine -->
-    <div id="main-app" class="layer">
-        <header class="app-header">
-            <div id="dash-btn" onclick="window.toggleSidebar()"><i class="fas fa-th-large"></i></div>
-            <div class="search-box"><i class="fas fa-search"></i><input type="text" id="smartInput" placeholder="گەڕان..." onkeyup="window.runSmartSearch()"></div>
-        </header>
-        <div id="sidebar">
-            <div id="user-info" style="padding:25px; text-align:center; border-bottom:1px solid #111;"></div>
-            <div id="module-list" style="padding:15px;"></div>
+    <!-- Receipt Modal -->
+    <div class="modal" id="receipt-modal">
+        <div class="modal-header">
+            <h3 style="color:white; margin:0;">تەواوکردنی وەسڵ</h3>
+            <button onclick="closeModal('receipt-modal')" style="background:none; border:none; color:#aaa; font-size:1.5rem;"><i data-feather="x"></i></button>
         </div>
-        <main id="main-viewport" onclick="window.closeSidebar()">
-            <div id="ad-box-target"></div>
-            <div id="content-target"><div style="padding-top:40vh; text-align:center; color:#111;">سیستەم ئامادەیە</div></div>
-        </main>
-        <nav class="bottom-nav" id="dynamic-nav-target"></nav>
-        <div id="timer-label"></div>
+        <div class="modal-body">
+            <input type="text" id="cust-name" class="glass-input" placeholder="ناوی کڕیار (پێویستە)">
+            <input type="tel" id="cust-phone" class="glass-input" placeholder="ژمارە مۆبایل">
+
+            <table class="app-table">
+                <thead><tr><th>کاڵا</th><th style="text-align:center">دانە</th><th style="text-align:left">نرخ</th></tr></thead>
+                <tbody id="receipt-table-body"></tbody>
+            </table>
+
+            <div class="manual-add" style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1); margin-bottom: 20px;">
+                <div style="font-size:0.85rem; color:#aaa; margin-bottom:10px;">زیادکردنی کاڵای دەرەکی:</div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="manual-name" class="glass-input" placeholder="ناو" style="margin:0; flex:2;">
+                    <input type="number" id="manual-price" class="glass-input" placeholder="نرخ" style="margin:0; flex:1;">
+                    <button onclick="addManualItem()" style="background:var(--success); border:none; color:white; border-radius:10px; width:50px; font-size:1.3rem; box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);">+</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <div class="total-box">
+                <span class="total-label">کۆی گشتی:</span>
+                <span class="total-amount" id="receipt-sum">0</span>
+            </div>
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+                <button class="btn-main" onclick="saveSale('cash')">
+                    <i data-feather="printer"></i> وەسڵ و کاش
+                </button>
+                <button class="btn-main" onclick="saveSale('debt')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); box-shadow:none;">
+                    <i data-feather="book"></i> قەرز
+                </button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        // --- GLOBAL ENGINE FUNCTIONS (THE BRAIN) ---
-        window.smartUpdate = (targetId, rawData) => {
-            if(!rawData) return;
-            let html = rawData;
-            try { if(!rawData.includes('<')) html = decodeURIComponent(atob(rawData)); } catch(e){}
-            const container = document.getElementById(targetId);
-            container.innerHTML = html;
-            // Execute any scripts found in the new content
-            container.querySelectorAll("script").forEach(s => {
-                const ns = document.createElement("script"); ns.text = s.text;
-                document.head.appendChild(ns).parentNode.removeChild(ns);
-            });
-        };
-        window.toggleSidebar = () => document.getElementById('sidebar').classList.toggle('open');
-        window.closeSidebar = () => document.getElementById('sidebar').classList.remove('open');
-        window.handleLogin = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-        window.logout = () => auth.signOut().then(() => location.reload());
-        window.loadItemHTML = (h) => window.loadContentHTML(h, null);
-        window.loadContentHTML = (h, el) => {
-            if(el) { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); el.classList.add('active'); }
-            window.smartUpdate('content-target', h);
-            window.closeSidebar();
-        };
-        window.runSmartSearch = () => {
-            let v = document.getElementById('smartInput').value.toLowerCase();
-            document.querySelectorAll('.dash-item-ui, .nav-item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(v) ? "flex" : "none");
-        };
+    <!-- History Modal -->
+    <div class="modal" id="history-modal">
+        <div class="modal-header">
+            <h3 id="hist-title" style="color:white; margin:0;">لیست</h3>
+            <button onclick="closeModal('history-modal')" style="background:none; border:none; color:#aaa; font-size:1.5rem;"><i data-feather="x"></i></button>
+        </div>
+        <div class="modal-body" id="history-content"></div>
+    </div>
 
-        // --- Firebase Core ---
-        const config = { apiKey: "AIzaSyD7aTAcX0APv0DzuT5d2zEBMCygWXvIvoM", authDomain: "karyar-app.firebaseapp.com", projectId: "karyar-app", databaseURL: "https://karyar-app-default-rtdb.firebaseio.com", appId: "1:99588670663:web:b889fca434238f2bd92ae2" };
-        firebase.initializeApp(config); const db = firebase.database(); const auth = firebase.auth();
-        const myID = localStorage.getItem('nk_stable_master_2026_final') || "NK-"+Math.random().toString(36).substr(2,6).toUpperCase();
-        localStorage.setItem('nk_stable_master_2026_final', myID);
-        document.getElementById('dev-id').innerText = myID;
-
-        let activeTimer = null;
-
-        window.onload = function() {
-            new QRCode(document.getElementById("qrcode"), { text: myID, width: 140, height: 140 });
-
-            // All-in-One Realtime Synchronization
-            db.ref('app_config').on('value', s => {
-                const c = s.val(); if(!c) return;
-                if(c.navigation) document.getElementById('dynamic-nav-target').innerHTML = Object.keys(c.navigation).map(k => `<div class="nav-item" onclick="window.loadContentHTML('${c.navigation[k].h}', this)"><img src="${c.navigation[k].i}"><span>${c.navigation[k].n}</span></div>`).join('');
-                if(c.dashboard) document.getElementById('module-list').innerHTML = c.dashboard;
-                if(c.ads) { document.getElementById('ad-box-target').innerHTML = c.ads; document.getElementById('ad-box-target').style.display = 'block'; }
-                if(c.home_html) window.smartUpdate('content-target', c.home_html);
-            });
-
-            // Fallback for old update keys
-            db.ref('dashboard_update/html_content').on('value', s => { if(s.val()) document.getElementById('module-list').innerHTML = s.val(); });
-            db.ref('app_update/html_content').on('value', s => { window.smartUpdate('content-target', s.val()); });
-
-            // MASTER SECURITY SYSTEM (Instant Kick Logic)
-            db.ref('devices/' + myID).on('value', snap => {
-                const d = snap.val(); const now = Date.now();
-                if (d && d.status === "active" && d.expiryTime > now) {
-                    auth.onAuthStateChanged(u => { 
-                        if(u) {
-                            launchApp(u, d.expiryTime);
-                            db.ref('devices/' + myID).update({ name: u.displayName, pic: u.photoURL, email: u.email });
-                        } else switchL('login-screen'); 
-                    });
-                } else {
-                    switchL('activation-screen');
-                    if(activeTimer) clearInterval(activeTimer);
-                }
-            });
-        };
-
-        function launchApp(u, expiry) {
-            switchL('main-app');
-            document.getElementById('user-info').innerHTML = `<img src="${u.photoURL}" style="width:55px; border-radius:50%; border:2px solid var(--neon);"><p style="margin-top:10px; font-size:14px; font-weight:bold;">${u.displayName}</p><small onclick="window.logout()" style="color:red; cursor:pointer;">دەرچوون</small>`;
+    <!-- Account Modal -->
+    <div class="modal" id="account-modal">
+        <div class="modal-header">
+            <h3 style="color:white; margin:0;">زانیاری</h3>
+            <button onclick="closeModal('account-modal')" style="background:none; border:none; color:#aaa; font-size:1.5rem;"><i data-feather="x"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center; display:flex; flex-direction:column; justify-content:center;">
             
-            if(activeTimer) clearInterval(activeTimer);
-            activeTimer = setInterval(() => {
-                if (Date.now() >= expiry) {
-                    clearInterval(activeTimer);
-                    location.reload(); 
+            <div style="margin-top:20px;">
+                <div style="background: rgba(59, 130, 246, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <i data-feather="shield" style="width:40px; height:40px; color:var(--primary);"></i>
+                </div>
+                <h3 style="color:white; margin-bottom: 5px;">دۆخی ئەدمین</h3>
+                <p style="color:#aaa; font-size: 0.9rem;">چوونەژوورەوە لادراوە بۆ کارکردنی ڕاستەوخۆ.</p>
+                <div style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; margin-top:20px; color:#888; border:1px solid rgba(255,255,255,0.05);">
+                    کۆگای حاجی وشیار
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+        <button class="nav-btn" onclick="resetHome()"><i data-feather="home"></i>سەرەکی</button>
+        <button class="nav-btn" onclick="toggleSearch()"><i data-feather="search"></i>گەڕان</button>
+        <button class="nav-btn" onclick="openHistory('sales')"><i data-feather="file-text"></i>وەسڵەکان</button>
+        <button class="nav-btn" onclick="openHistory('debts')"><i data-feather="book"></i>قەرزەکان</button>
+        <button class="nav-btn" onclick="openAccount()"><i data-feather="info"></i>زانیاری</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, getDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        
+        const app = initializeApp({ 
+            apiKey: "AIzaSyA_ExY5gTIXw46LBxnKetW-vND05IbFJt4", 
+            authDomain: "nasrwla.firebaseapp.com", 
+            projectId: "nasrwla", 
+            storageBucket: "nasrwla.appspot.com", 
+            messagingSenderId: "986892855146", 
+            appId: "1:986892855146:web:1aec3c689e4da92470e713" 
+        });
+        const db = getFirestore(app);
+        
+        enableIndexedDbPersistence(db).catch((err) => {
+            console.log("Persistence failed:", err.code);
+        });
+
+        let products = [];
+        let pendingProducts = [];
+        let cart = {};
+        let activeCat = 'All';
+        let firstLoad = true;
+        
+        const currentUser = { email: "admin@local.com", displayName: "Admin User" };
+
+        feather.replace();
+
+        // --- UPDATE LOGIC ---
+        
+        onSnapshot(collection(db, "products"), (snap) => {
+            let temp = [];
+            snap.forEach(d => temp.push({id: d.id, ...d.data()}));
+            temp.sort((a,b) => a.name.localeCompare(b.name, 'ku'));
+
+            if (firstLoad) {
+                products = temp;
+                renderGrid();
+                renderCategories();
+                renderAlpha();
+                firstLoad = false;
+            } else {
+                pendingProducts = temp;
+                document.getElementById('update-btn').style.display = 'flex';
+                feather.replace();
+            }
+        });
+
+        window.runUpdate = () => {
+            const overlay = document.getElementById('update-overlay');
+            const bar = document.getElementById('progress-bar');
+            const txt = document.getElementById('progress-text');
+            
+            overlay.style.display = 'flex';
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    
+                    products = pendingProducts;
+                    renderGrid();
+                    renderCategories();
+                    renderAlpha();
+                    
+                    overlay.style.display = 'none';
+                    document.getElementById('update-btn').style.display = 'none';
+                    
                 } else {
-                    document.getElementById('timer-label').innerText = "T: " + Math.ceil((expiry - Date.now())/1000);
+                    width += 5; 
+                    bar.style.width = width + '%';
+                    txt.innerText = width;
                 }
-            }, 500);
+            }, 30);
+        };
+
+        // --- CORE LOGIC ---
+
+        window.openAccount = () => {
+            closeAllModals();
+            document.getElementById('account-modal').classList.add('open');
+        };
+
+        function renderGrid(list = products) {
+            const grid = document.getElementById('grid');
+            const isSearchResult = list !== products;
+            const filtered = (activeCat === 'All' || isSearchResult) ? list : list.filter(p => p.category === activeCat);
+            
+            requestAnimationFrame(() => {
+                grid.innerHTML = filtered.map((p, index) => `
+                    <div class="card" id="card-${p.id}" onclick="addToCart('${p.id}')">
+                        <div class="qty-badge ${cart[p.id] ? 'active' : ''}" id="badge-${p.id}">${cart[p.id]?.qty || 0}</div>
+                        <img src="${p.imageUrl || ''}" loading="lazy" decoding="async">
+                        <div class="card-body">
+                            <div class="p-name">${p.name}</div>
+                            <div class="p-price">${Number(p.price).toLocaleString()}</div>
+                        </div>
+                    </div>
+                `).join('');
+            });
         }
 
-        function switchL(id) { document.querySelectorAll('.layer').forEach(l => l.style.display='none'); document.getElementById(id).style.display='flex'; }
+        function renderCategories() {
+            const cats = new Set(['All']);
+            products.forEach(p => {if(p.category) cats.add(p.category)});
+            document.getElementById('cat-list').innerHTML = Array.from(cats).map((c, index) => 
+                `<div class="cat-item ${c === activeCat ? 'active-cat' : ''}" onclick="filterCat('${c}')">${c === 'All' ? 'هەموو بەشەکان' : c}</div>`
+            ).join('');
+        }
+
+        function renderAlpha() {
+            const chars = ['ئ','ب','پ','ت','ج','چ','ح','خ','د','ر','ز','ژ','س','ش','ع','غ','ف','ق','ک','گ','ل','م','ن','و','ه','ی'];
+            document.getElementById('alpha-bar').innerHTML = chars.map(char => 
+                `<div class="alpha-char" onclick="scrollToChar('${char}')">${char}</div>`
+            ).join('');
+        }
+
+        window.scrollToChar = (char) => {
+            const found = products.find(p => p.name.trim().startsWith(char));
+            if(found) {
+                const el = document.getElementById(`card-${found.id}`);
+                if(el) {
+                    el.scrollIntoView({behavior: "smooth", block: "center"});
+                    el.classList.add('highlight');
+                    setTimeout(()=>el.classList.remove('highlight'), 1000);
+                }
+            }
+        };
+
+        window.addToCart = (id) => {
+            const p = products.find(x => x.id === id);
+            if(cart[id]) cart[id].qty++;
+            else cart[id] = { ...p, qty: 1, id: id };
+            
+            const card = document.getElementById(`card-${id}`);
+            card.style.opacity = "0.7";
+            setTimeout(() => card.style.opacity = "1", 100);
+            
+            updateUI();
+        };
+
+        window.changeQty = (id, delta) => {
+            if(cart[id]) {
+                cart[id].qty += delta;
+                if(cart[id].qty <= 0) delete cart[id];
+                updateUI();
+                renderReceiptItems();
+            }
+        };
+
+        window.addManualItem = () => {
+            const name = document.getElementById('manual-name').value;
+            let price = document.getElementById('manual-price').value;
+            
+            if(name && price) {
+                price = Number(price) || 0;
+                const id = 'm_' + Date.now();
+                cart[id] = { name: name, price: price, qty: 1, id: id };
+                updateUI();
+                renderReceiptItems();
+                document.getElementById('manual-name').value = '';
+                document.getElementById('manual-price').value = '';
+            }
+        };
+
+        function updateUI() {
+            products.forEach(p => {
+                const badge = document.getElementById(`badge-${p.id}`);
+                if(badge) {
+                    if(cart[p.id]) { badge.innerText = cart[p.id].qty; badge.classList.add('active'); }
+                    else badge.classList.remove('active');
+                }
+            });
+            const total = Object.values(cart).reduce((a,b)=>a+b.qty, 0);
+            const btn = document.getElementById('top-basket');
+            document.getElementById('basket-count').innerText = total;
+            if(total > 0) btn.classList.add('show'); else btn.classList.remove('show');
+        }
+
+        function renderReceiptItems() {
+            const tbody = document.getElementById('receipt-table-body');
+            let html = '';
+            let sum = 0;
+            Object.values(cart).forEach(item => {
+                const total = item.price * item.qty;
+                sum += total;
+                html += `
+                <tr>
+                    <td>${item.name}</td>
+                    <td style="text-align:center">
+                        <div class="qty-ctrl">
+                            <div class="qty-btn" onclick="changeQty('${item.id}', -1)">-</div>
+                            <span style="min-width:25px; text-align:center; font-weight:bold; color:white;">${item.qty}</span>
+                            <div class="qty-btn" onclick="changeQty('${item.id}', 1)">+</div>
+                        </div>
+                    </td>
+                    <td style="text-align:left">${total.toLocaleString()}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+            document.getElementById('receipt-sum').innerText = sum.toLocaleString();
+        }
+
+        window.openReceiptModal = () => {
+            document.getElementById('sidebar').classList.remove('open');
+            document.querySelector('.overlay').classList.remove('active');
+            renderReceiptItems();
+            document.getElementById('receipt-modal').classList.add('open');
+        };
+
+        window.saveSale = async (type) => {
+            if(Object.keys(cart).length === 0) return alert("سەبەتە بەتاڵە!");
+
+            const nameInput = document.getElementById('cust-name');
+            const name = nameInput.value.trim();
+            const phone = document.getElementById('cust-phone').value;
+            const total = Object.values(cart).reduce((a,b)=>a+(b.price*b.qty), 0);
+
+            if(!name) {
+                alert("تکایە ناوی کڕیار بنووسە!");
+                nameInput.focus();
+                nameInput.style.borderColor = "var(--danger)";
+                return;
+            }
+
+            const cleanItems = {};
+            Object.keys(cart).forEach(k => cleanItems[k] = { 
+                name: cart[k].name, 
+                price: Number(cart[k].price) || 0, 
+                qty: Number(cart[k].qty) || 1 
+            });
+
+            const data = {
+                customer: name,
+                phone: phone || "",
+                items: cleanItems,
+                total: total,
+                date: serverTimestamp(),
+                type: type,
+                createdBy: currentUser.email 
+            };
+
+            try {
+                if(type === 'debt') {
+                    let paid = prompt(`کۆی گشتی: ${total}\nبڕی پارەی دراو (Wasil):`, "0");
+                    if(paid === null) return;
+                    paid = Number(paid);
+                    if(isNaN(paid)) paid = 0;
+                    
+                    data.paid = paid;
+                    data.remaining = total - paid;
+                    await addDoc(collection(db, "debts"), data);
+                    alert("قەرزەکە خەزن کرا ✅");
+                } else {
+                    await addDoc(collection(db, "sales"), data);
+                    
+                    const printArea = document.getElementById('print-area');
+                    
+                    document.getElementById('pr-name').innerText = data.customer;
+                    document.getElementById('pr-phone').innerText = data.phone;
+                    document.getElementById('pr-date').innerText = new Date().toLocaleDateString();
+                    document.getElementById('pr-items').innerHTML = Object.values(cart).map(i => 
+                        `<tr><td>${i.name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:left">${(i.price*i.qty).toLocaleString()}</td></tr>`
+                    ).join('');
+                    document.getElementById('pr-total').innerText = total.toLocaleString();
+                    
+                    printArea.style.display = 'block';
+                    window.print();
+                    setTimeout(() => { printArea.style.display = 'none'; }, 1000);
+                }
+                
+                cart = {};
+                updateUI();
+                closeModal('receipt-modal');
+                document.getElementById('cust-name').value = '';
+                document.getElementById('cust-phone').value = '';
+                document.getElementById('cust-name').style.borderColor = "#333";
+                
+            } catch(e) { 
+                console.error(e);
+                alert("هەڵە: " + e.message); 
+            }
+        };
+
+        window.openHistory = (col) => {
+            closeAllModals();
+            document.getElementById('hist-title').innerText = col === 'sales' ? "وەسڵەکان" : "قەرزەکان";
+            document.getElementById('history-modal').classList.add('open');
+            
+            onSnapshot(query(collection(db, col), orderBy("date", "desc")), (snap) => {
+                const div = document.getElementById('history-content');
+                if(snap.empty) { div.innerHTML = "<p style='text-align:center; color:#777; margin-top:50px;'>هیچ تۆمارێک نییە</p>"; return; }
+                
+                div.innerHTML = snap.docs.map(doc => {
+                    const d = doc.data();
+                    const date = d.date ? new Date(d.date.toDate()).toLocaleDateString() : '';
+                    return `
+                    <div style="background:rgba(255,255,255,0.05); padding:15px; margin-bottom:12px; border-radius:15px; border:1px solid rgba(255,255,255,0.05); backdrop-filter:blur(5px);">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <strong style="color:white; font-size:1.1rem;">${d.customer}</strong>
+                            <small style="color:#aaa;">${date}</small>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="color:var(--primary); font-weight:900; font-size:1.1rem; text-shadow:0 0 10px rgba(59,130,246,0.5);">${Number(d.total).toLocaleString()} د.ع</div>
+                                ${d.type === 'debt' ? `<div style="color:var(--danger); font-size:0.9rem; margin-top:4px;">ماوە: ${Number(d.remaining).toLocaleString()}</div>` : ''}
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button onclick="restoreOrder('${doc.id}', '${col}')" style="background:var(--primary); border:none; color:white; padding:8px 12px; border-radius:10px; cursor:pointer;">
+                                    <i data-feather="rotate-ccw" style="width:18px;"></i>
+                                </button>
+                                <button onclick="deleteRec('${col}', '${doc.id}')" style="background:var(--danger); border:none; color:white; padding:8px 12px; border-radius:10px; cursor:pointer;">
+                                    <i data-feather="trash-2" style="width:18px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+                feather.replace();
+            });
+        };
+
+        window.restoreOrder = async (id, col) => {
+            try {
+                const docSnap = await getDoc(doc(db, col, id));
+                if (docSnap.exists()) {
+                    if(confirm("دەتەوێت کاڵاکانی ئەم وەسڵە بگەڕێنیتەوە؟")) {
+                        const data = docSnap.data();
+                        cart = data.items;
+                        document.getElementById('cust-name').value = data.customer;
+                        document.getElementById('cust-phone').value = data.phone;
+                        updateUI();
+                        closeModal('history-modal');
+                        openReceiptModal();
+                    }
+                }
+            } catch (e) { alert("هەڵە!"); }
+        };
+
+        window.deleteRec = async (col, id) => { 
+            if(confirm("دڵنیای لە سڕینەوە؟")) {
+                await deleteDoc(doc(db, col, id));
+            }
+        };
+
+        window.filterCat = (c) => { 
+            activeCat = c; renderGrid(); renderCategories();
+            closeSidebar();
+        };
+
+        window.filterProducts = (val) => {
+            activeCat = 'All'; renderCategories();
+            const res = products.filter(p => p.name.toLowerCase().includes(val.toLowerCase()));
+            renderGrid(res);
+        };
+        
+        window.closeSidebar = () => {
+            document.getElementById('sidebar').classList.remove('open');
+            document.querySelector('.overlay').classList.remove('active');
+        };
+
+        window.toggleSidebar = () => { 
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.overlay');
+            
+            if(sidebar.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                closeAllModals();
+                sidebar.classList.add('open');
+                overlay.classList.add('active');
+            }
+        };
+        
+        window.toggleSearch = () => {
+             const container = document.getElementById('search-container');
+             const input = document.getElementById('search-input');
+             
+             if(container.classList.contains('visible')) {
+                 container.classList.remove('visible');
+             } else {
+                 closeAllModals();
+                 container.classList.add('visible');
+                 input.focus();
+             }
+        };
+
+        window.resetHome = () => {
+            closeAllModals();
+            document.getElementById('search-input').value = '';
+            activeCat = 'All';
+            renderGrid(products);
+            renderCategories();
+        };
+
+        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+        window.closeAllModals = () => { 
+            closeModal('receipt-modal'); 
+            closeModal('history-modal'); 
+            closeModal('account-modal');
+            document.getElementById('search-container').classList.remove('visible'); 
+            closeSidebar();
+        };
     </script>
 </body>
 </html>
